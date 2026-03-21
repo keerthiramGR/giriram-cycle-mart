@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import ProductCard from '@/components/products/ProductCard';
 
@@ -23,19 +24,31 @@ const PRICE_RANGES = [
 ];
 
 const DUMMY_PRODUCTS = [
-  { id: 1, slug: 'hercules-roadeo', name: 'Hercules Roadeo Hannibal 27.5T', brand: 'Hercules', price: 14500, compare_at_price: 16000, category_slug: 'adult-cycles', stock_quantity: 5, primary_image_url: 'https://images.unsplash.com/photo-1576435728678-68ce0f6eb293?auto=format&fit=crop&w=500&q=80' },
-  { id: 2, slug: 'hero-kyoto', name: 'Hero Kyoto 26T Single Speed', brand: 'Hero', price: 6499, compare_at_price: 7999, category_slug: 'mountain-bikes', stock_quantity: 12, primary_image_url: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=500&q=80' },
-  { id: 3, slug: 'kids-electric-jeep', name: 'Kids 12V Battery Operated Jeep', brand: 'ToyHouse', price: 18999, compare_at_price: 22000, category_slug: 'ride-on', stock_quantity: 3, primary_image_url: 'https://images.unsplash.com/photo-1596461404969-9ce20c71c4c1?auto=format&fit=crop&w=500&q=80' },
-  { id: 4, slug: 'smart-helmet', name: 'Lumos Matrix Smart Helmet', brand: 'Lumos', price: 8999, compare_at_price: 9999, category_slug: 'accessories', stock_quantity: 20, primary_image_url: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=500&q=80' },
-  { id: 5, slug: 'hero-sprint', name: 'Hero Sprint Pro 27.5T', brand: 'Hero', price: 11200, compare_at_price: 13500, category_slug: 'adult-cycles', stock_quantity: 0, primary_image_url: 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?auto=format&fit=crop&w=500&q=80' },
-  { id: 6, slug: 'emotorad-x1', name: 'EMotorad X1 Electric Cycle', brand: 'EMotorad', price: 24999, compare_at_price: 28000, category_slug: 'electric-cycles', stock_quantity: 4, primary_image_url: 'https://images.unsplash.com/photo-1571068316344-75bc76f77890?auto=format&fit=crop&w=500&q=80' },
+  { id: 1, slug: 'hercules-roadeo', name: 'Hercules Roadeo Hannibal 27.5T', brand: 'Hercules', price: 14500, compare_at_price: 16000, category_slug: 'adult-cycles', stock_quantity: 5, primary_image_url: '/images/products/hercules_bike.png', colors: ['#000000', '#EF4444'], age_category: '15+ Years' },
+  { id: 2, slug: 'hero-kyoto', name: 'Hero Kyoto 26T Single Speed', brand: 'Hero', price: 6499, compare_at_price: 7999, category_slug: 'mountain-bikes', stock_quantity: 12, primary_image_url: '/images/products/hero_kyoto.png', colors: ['#1E3A8A'], age_category: '12+ Years' },
+  { id: 3, slug: 'kids-electric-jeep', name: 'Kids 12V Battery Operated Jeep', brand: 'ToyHouse', price: 18999, compare_at_price: 22000, category_slug: 'ride-on', stock_quantity: 3, primary_image_url: '/images/products/kids_jeep.png', colors: ['#EF4444', '#22C55E'], age_category: '3-8 Years' },
+  { id: 4, slug: 'smart-helmet', name: 'Lumos Matrix Smart Helmet', brand: 'Lumos', price: 8999, compare_at_price: 9999, category_slug: 'accessories', stock_quantity: 20, primary_image_url: '/images/products/smart_helmet.png', colors: ['#FFFFFF', '#000000'], age_category: 'All Ages' },
+  { id: 5, slug: 'hero-sprint', name: 'Hero Sprint Pro 27.5T', brand: 'Hero', price: 11200, compare_at_price: 13500, category_slug: 'adult-cycles', stock_quantity: 0, primary_image_url: '/images/products/hero_sprint.png', colors: ['#F97316'], age_category: '15+ Years' },
+  { id: 6, slug: 'emotorad-x1', name: 'EMotorad X1 Electric Cycle', brand: 'EMotorad', price: 24999, compare_at_price: 28000, category_slug: 'electric-cycles', stock_quantity: 4, primary_image_url: '/images/products/emotorad_x1.png', colors: ['#EAB308', '#000000'], age_category: '16+ Years' },
+  { id: 7, slug: 'tata-stryder', name: 'Tata Stryder Harris 27.5T', brand: 'Tata', price: 8500, compare_at_price: 10000, category_slug: 'mountain-bikes', stock_quantity: 8, primary_image_url: '/images/products/tata_stryder.png', colors: ['#0EA5E9'], age_category: '14+ Years' },
+  { id: 8, slug: 'kids-bike-battery', name: 'Kids Rechargeable Battery Bike R1', brand: 'ToyHouse', price: 12500, compare_at_price: 15000, category_slug: 'ride-on', stock_quantity: 2, primary_image_url: '/images/products/kids_bike.png', colors: ['#14B8A6', '#EF4444'], age_category: '2-5 Years' },
+  { id: 9, slug: 'kids-electric-car', name: 'Kids Electric Remote Control Car', brand: 'Baybee', price: 15999, compare_at_price: 18000, category_slug: 'ride-on', stock_quantity: 6, primary_image_url: '/images/products/kids_car.png', colors: ['#FFFFFF', '#A855F7'], age_category: '3-6 Years' },
 ];
 
-export default function ProductsPage() {
-  const [activeCategory, setActiveCategory] = useState('all');
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get('category');
+  
+  const [activeCategory, setActiveCategory] = useState(categoryParam || 'all');
   const [activePrice, setActivePrice] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  useEffect(() => {
+    if (categoryParam) {
+      setActiveCategory(categoryParam);
+    }
+  }, [categoryParam]);
 
   const filteredProducts = DUMMY_PRODUCTS.filter(product => {
     if (activeCategory !== 'all' && product.category_slug !== activeCategory) return false;
@@ -157,5 +170,13 @@ export default function ProductsPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '6rem', textAlign: 'center', fontSize: '1.2rem', color: 'var(--text-muted)' }}>Loading products...</div>}>
+      <ProductsContent />
+    </Suspense>
   );
 }

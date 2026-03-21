@@ -13,6 +13,7 @@ export default function UserProfilePage() {
 
   const profileName = user?.user_metadata?.full_name || 'Guest User';
   const profileEmail = user?.email || 'guest@example.com';
+  const profilePhone = user?.user_metadata?.phone || '';
 
   const handleSignOut = async () => {
     await signOut();
@@ -180,6 +181,14 @@ export default function UserProfilePage() {
                     <input 
                       type="text" 
                       defaultValue={profileName}
+                      className="form-input" 
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      defaultValue={profilePhone}
                       className="form-input" 
                     />
                   </div>

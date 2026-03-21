@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 
 function SignupForm() {
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ function SignupForm() {
 
     const { error: signUpError } = await signUp({ 
       email, password, 
-      options: { data: { full_name: fullName } }
+      options: { data: { full_name: fullName, phone } }
     });
 
     if (signUpError) {
@@ -53,6 +54,11 @@ function SignupForm() {
         <div className="form-group">
           <label htmlFor="fullName" className="form-label">Full Name</label>
           <input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="form-input" placeholder="John Doe" />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="phone" className="form-label">Phone Number</label>
+          <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required className="form-input" placeholder="+91 98765 43210" />
         </div>
 
         <div className="form-group">

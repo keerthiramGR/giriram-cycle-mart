@@ -150,8 +150,8 @@ CREATE TRIGGER update_repair_modtime BEFORE UPDATE ON repair_bookings FOR EACH R
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name)
-  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name');
+  INSERT INTO public.profiles (id, email, full_name, phone)
+  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'phone');
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

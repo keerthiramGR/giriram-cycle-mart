@@ -33,9 +33,15 @@ export default function AdminDashboardPage() {
 
   // Dummy State
   const [products, setProducts] = useState([
-    { id: 1, name: 'Hercules Roadeo Hannibal', price: 14500, stock: 5, category: 'Adult Cycles', image: null },
-    { id: 2, name: 'Hero Kyoto 26T', price: 6499, stock: 12, category: 'Mountain Bikes', image: null },
-    { id: 3, name: 'Lumos Smart Helmet', price: 8999, stock: 0, category: 'Accessories', image: null },
+    { id: 1, name: 'Hercules Roadeo Hannibal 27.5T', price: 14500, stock: 5, category: 'Adult Cycles', image: '/images/products/hercules_bike.png', colors: '#000000, #EF4444', age_category: '15+ Years' },
+    { id: 2, name: 'Hero Kyoto 26T Single Speed', price: 6499, stock: 12, category: 'Mountain Bikes', image: '/images/products/hero_kyoto.png', colors: '#1E3A8A', age_category: '12+ Years' },
+    { id: 3, name: 'Kids 12V Battery Operated Jeep', price: 18999, stock: 3, category: 'Kids Ride-on Vehicles', image: '/images/products/kids_jeep.png', colors: '#EF4444, #22C55E', age_category: '3-8 Years' },
+    { id: 4, name: 'Lumos Matrix Smart Helmet', price: 8999, stock: 20, category: 'Accessories', image: '/images/products/smart_helmet.png', colors: '#FFFFFF, #000000', age_category: 'All Ages' },
+    { id: 5, name: 'Hero Sprint Pro 27.5T', price: 11200, stock: 0, category: 'Adult Cycles', image: '/images/products/hero_sprint.png', colors: '#F97316', age_category: '15+ Years' },
+    { id: 6, name: 'EMotorad X1 Electric Cycle', price: 24999, stock: 4, category: 'Electric Cycles', image: '/images/products/emotorad_x1.png', colors: '#EAB308, #000000', age_category: '16+ Years' },
+    { id: 7, name: 'Tata Stryder Harris 27.5T', price: 8500, stock: 8, category: 'Mountain Bikes', image: '/images/products/tata_stryder.png', colors: '#0EA5E9', age_category: '14+ Years' },
+    { id: 8, name: 'Kids Rechargeable Battery Bike R1', price: 12500, stock: 2, category: 'Kids Ride-on Vehicles', image: '/images/products/kids_bike.png', colors: '#14B8A6, #EF4444', age_category: '2-5 Years' },
+    { id: 9, name: 'Kids Electric Remote Control Car', price: 15999, stock: 6, category: 'Kids Ride-on Vehicles', image: '/images/products/kids_car.png', colors: '#FFFFFF, #A855F7', age_category: '3-6 Years' },
   ]);
 
   const [orders, setOrders] = useState([
@@ -70,15 +76,15 @@ export default function AdminDashboardPage() {
   };
 
   const [usersList, setUsersList] = useState([
-    { id: 'usr-1', name: 'Admin User', email: 'admin@giriramcycles.com', role: 'Admin' },
-    { id: 'usr-2', name: 'John Doe', email: 'john@example.com', role: 'User' },
-    { id: 'usr-3', name: 'Jane Smith', email: 'jane@example.com', role: 'User' },
+    { id: 'usr-1', name: 'Admin User', phone: '+91 98765 43210', email: 'admin@giriramcycles.com', role: 'Admin' },
+    { id: 'usr-2', name: 'John Doe', phone: '+91 98765 43211', email: 'john@example.com', role: 'User' },
+    { id: 'usr-3', name: 'Jane Smith', phone: '+91 98765 43212', email: 'jane@example.com', role: 'User' },
   ]);
 
   // Product Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [productForm, setProductForm] = useState({ name: '', price: '', stock: '', category: 'Adult Cycles', image: null });
+  const [productForm, setProductForm] = useState({ name: '', price: '', stock: '', category: 'Adult Cycles', image: null, colors: '', age_category: '' });
 
   // Order/Repair Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -94,7 +100,7 @@ export default function AdminDashboardPage() {
 
   const openProductModal = (product = null) => {
     if (product) { setEditingProduct(product); setProductForm(product); }
-    else { setEditingProduct(null); setProductForm({ name: '', price: '', stock: '', category: 'Adult Cycles', image: null }); }
+    else { setEditingProduct(null); setProductForm({ name: '', price: '', stock: '', category: 'Adult Cycles', image: null, colors: '', age_category: '' }); }
     setIsProductModalOpen(true);
   };
 
@@ -328,6 +334,7 @@ export default function AdminDashboardPage() {
                 <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
                   <thead><tr style={{ backgroundColor: 'var(--bg-color)', borderBottom: '1px solid var(--border-color)' }}>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Name</th>
+                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Phone</th>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Email</th>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Role</th>
                     <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', textAlign: 'right' }}>Actions</th>
@@ -335,6 +342,7 @@ export default function AdminDashboardPage() {
                   <tbody>{usersList.map(u => (
                     <tr key={u.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '1rem 1.5rem', fontWeight: '500' }}>{u.name}</td>
+                      <td style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)' }}>{u.phone || 'N/A'}</td>
                       <td style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)' }}>{u.email}</td>
                       <td style={{ padding: '1rem 1.5rem' }}><span style={{ padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: u.role === 'Admin' ? '#FEE2E2' : '#F3F4F6', color: u.role === 'Admin' ? '#991B1B' : '#374151' }}>{u.role}</span></td>
                       <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}><button onClick={() => openEditModal('user', u)} style={{ color: '#3B82F6' }}><Edit size={18} /></button></td>
@@ -383,9 +391,13 @@ export default function AdminDashboardPage() {
                   <div style={{ flex: 1 }}><label className="form-label">Price (₹)</label><input type="number" className="form-input" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} required /></div>
                   <div style={{ flex: 1 }}><label className="form-label">Stock</label><input type="number" className="form-input" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} required /></div>
                 </div>
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ flex: 1 }}><label className="form-label">Colors</label><input type="text" className="form-input" value={productForm.colors || ''} onChange={e => setProductForm({...productForm, colors: e.target.value})} placeholder="#000000, #EF4444" /></div>
+                  <div style={{ flex: 1 }}><label className="form-label">Age Category</label><input type="text" className="form-input" value={productForm.age_category || ''} onChange={e => setProductForm({...productForm, age_category: e.target.value})} placeholder="e.g. 15+ Years" /></div>
+                </div>
                 <div style={{ marginBottom: '1.5rem' }}><label className="form-label">Category</label>
                   <select className="form-input" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} required style={{ backgroundColor: 'white' }}>
-                    <option>Adult Cycles</option><option>Kids Cycles</option><option>Electric Cycles</option><option>Mountain Bikes</option><option>Accessories</option>
+                    <option>Adult Cycles</option><option>Kids Cycles</option><option>Electric Cycles</option><option>Mountain Bikes</option><option>Kids Ride-on Vehicles</option><option>Accessories</option>
                   </select>
                 </div>
                 <Button type="submit" className="btn-full" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><Save size={18} /> Save Product</Button>
