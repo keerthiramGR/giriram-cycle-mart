@@ -12,6 +12,17 @@ const CATEGORIES = [
   { id: 'electric-cycles', name: 'Electric Cycles' },
   { id: 'mountain-bikes', name: 'Mountain Bikes' },
   { id: 'ride-on', name: 'Kids Ride-on Vehicles' },
+  { id: 'kids-ride-on', name: 'Kids Ride-on (Alt)' },
+  { id: 'accessories', name: 'Accessories' },
+];
+
+const DISPLAY_CATEGORIES = [
+  { id: 'all', name: 'All Cycles' },
+  { id: 'adult-cycles', name: 'Adult Cycles' },
+  { id: 'kids-cycles', name: 'Kids Cycles' },
+  { id: 'electric-cycles', name: 'Electric Cycles' },
+  { id: 'mountain-bikes', name: 'Mountain Bikes' },
+  { id: 'ride-on', name: 'Kids Ride-on Vehicles' },
   { id: 'accessories', name: 'Accessories' },
 ];
 
@@ -23,43 +34,75 @@ const PRICE_RANGES = [
   { id: 'above-20000', name: 'Above ₹20,000', min: 20001, max: 1000000 },
 ];
 
-const DUMMY_PRODUCTS = [
-  { id: 1, slug: 'hercules-roadeo', name: 'Hercules Roadeo Hannibal 27.5T', brand: 'Hercules', price: 14500, compare_at_price: 16000, category_slug: 'adult-cycles', stock_quantity: 5, primary_image_url: '/images/products/hercules_bike.png', colors: ['#000000', '#EF4444'], age_category: '15+ Years' },
-  { id: 2, slug: 'hero-kyoto', name: 'Hero Kyoto 26T Single Speed', brand: 'Hero', price: 6499, compare_at_price: 7999, category_slug: 'mountain-bikes', stock_quantity: 12, primary_image_url: '/images/products/hero_kyoto.png', colors: ['#1E3A8A'], age_category: '12+ Years' },
-  { id: 3, slug: 'kids-electric-jeep', name: 'Kids 12V Battery Operated Jeep', brand: 'ToyHouse', price: 18999, compare_at_price: 22000, category_slug: 'ride-on', stock_quantity: 3, primary_image_url: '/images/products/kids_jeep.png', colors: ['#EF4444', '#22C55E'], age_category: '3-8 Years' },
-  { id: 4, slug: 'smart-helmet', name: 'Lumos Matrix Smart Helmet', brand: 'Lumos', price: 8999, compare_at_price: 9999, category_slug: 'accessories', stock_quantity: 20, primary_image_url: '/images/products/smart_helmet.png', colors: ['#FFFFFF', '#000000'], age_category: 'All Ages' },
-  { id: 5, slug: 'hero-sprint', name: 'Hero Sprint Pro 27.5T', brand: 'Hero', price: 11200, compare_at_price: 13500, category_slug: 'adult-cycles', stock_quantity: 0, primary_image_url: '/images/products/hero_sprint.png', colors: ['#F97316'], age_category: '15+ Years' },
-  { id: 6, slug: 'emotorad-x1', name: 'EMotorad X1 Electric Cycle', brand: 'EMotorad', price: 24999, compare_at_price: 28000, category_slug: 'electric-cycles', stock_quantity: 4, primary_image_url: '/images/products/emotorad_x1.png', colors: ['#EAB308', '#000000'], age_category: '16+ Years' },
-  { id: 7, slug: 'tata-stryder', name: 'Tata Stryder Harris 27.5T', brand: 'Tata', price: 8500, compare_at_price: 10000, category_slug: 'mountain-bikes', stock_quantity: 8, primary_image_url: '/images/products/tata_stryder.png', colors: ['#0EA5E9'], age_category: '14+ Years' },
-  { id: 8, slug: 'kids-bike-battery', name: 'Kids Rechargeable Battery Bike R1', brand: 'ToyHouse', price: 12500, compare_at_price: 15000, category_slug: 'ride-on', stock_quantity: 2, primary_image_url: '/images/products/kids_bike.png', colors: ['#14B8A6', '#EF4444'], age_category: '2-5 Years' },
-  { id: 9, slug: 'kids-electric-car', name: 'Kids Electric Remote Control Car', brand: 'Baybee', price: 15999, compare_at_price: 18000, category_slug: 'ride-on', stock_quantity: 6, primary_image_url: '/images/products/kids_car.png', colors: ['#FFFFFF', '#A855F7'], age_category: '3-6 Years' },
-];
+// Map a DB product to the shape ProductCard expects
+function mapProduct(p) {
+  const catSlug = p.categories?.slug || 'accessories';
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    brand: p.brand || '',
+    price: Number(p.price),
+    compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : null,
+    category_slug: catSlug,
+    stock_quantity: p.stock_quantity,
+    primary_image_url: p.primary_image_url || '/images/products/placeholder.png',
+    colors: p.colors ? p.colors.split(',').map(c => c.trim()) : [],
+    age_category: p.age_category || '',
+  };
+}
 
 function ProductsContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
-  
+
   const [activeCategory, setActiveCategory] = useState(categoryParam || 'all');
   const [activePrice, setActivePrice] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
   useEffect(() => {
-    if (categoryParam) {
-      setActiveCategory(categoryParam);
-    }
+    if (categoryParam) setActiveCategory(categoryParam);
   }, [categoryParam]);
 
-  const filteredProducts = DUMMY_PRODUCTS.filter(product => {
-    if (activeCategory !== 'all' && product.category_slug !== activeCategory) return false;
+  useEffect(() => {
+    async function loadProducts() {
+      setIsLoading(true);
+      setFetchError(null);
+      try {
+        const res = await fetch('/api/products');
+        const json = await res.json();
+        if (json.error) throw new Error(json.error);
+        setProducts((json.products || []).map(mapProduct));
+      } catch (err) {
+        setFetchError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadProducts();
+  }, []);
+
+  const filteredProducts = products.filter(product => {
+    // Match both 'ride-on' and 'kids-ride-on' slugs to the same filter
+    const catMatch = activeCategory === 'all'
+      || product.category_slug === activeCategory
+      || (activeCategory === 'ride-on' && product.category_slug === 'kids-ride-on');
+    if (!catMatch) return false;
+
     if (activePrice !== 'all') {
       const range = PRICE_RANGES.find(r => r.id === activePrice);
       if (product.price < range.min || product.price > range.max) return false;
     }
+
     if (searchQuery) {
       const lowerQuery = searchQuery.toLowerCase();
-      if (!product.name.toLowerCase().includes(lowerQuery) && 
-          !product.brand.toLowerCase().includes(lowerQuery)) {
+      if (!product.name.toLowerCase().includes(lowerQuery) &&
+          !(product.brand || '').toLowerCase().includes(lowerQuery)) {
         return false;
       }
     }
@@ -69,17 +112,14 @@ function ProductsContent() {
   return (
     <div style={{ backgroundColor: 'var(--bg-color)', minHeight: '100vh', padding: '3rem 0' }}>
       <div className="container">
-        
+
         <div className="page-header">
           <h1 className="page-title">Shop Cycles &amp; Accessories</h1>
           <p className="page-subtitle">Find the perfect ride for your next adventure.</p>
         </div>
 
         {/* Mobile Filter Toggle */}
-        <button 
-          className="mobile-filter-btn"
-          onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-        >
+        <button className="mobile-filter-btn" onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}>
           <SlidersHorizontal size={20} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
           Filters &amp; Sorting
         </button>
@@ -87,12 +127,11 @@ function ProductsContent() {
         <div className="products-layout">
           {/* Sidebar */}
           <div className={`products-sidebar ${isMobileFilterOpen ? 'mobile-open' : ''}`}>
-            
             <div className="filter-group">
               <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                <input 
-                  type="text" 
-                  placeholder="Search products..." 
+                <input
+                  type="text"
+                  placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}
@@ -100,16 +139,13 @@ function ProductsContent() {
                 <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               </div>
             </div>
-            
+
             <div className="filter-group">
               <h3 className="filter-title">Categories</h3>
               <ul className="filter-list">
-                {CATEGORIES.map(category => (
+                {DISPLAY_CATEGORIES.map(category => (
                   <li key={category.id}>
-                    <button 
-                      className={activeCategory === category.id ? 'active' : ''}
-                      onClick={() => setActiveCategory(category.id)}
-                    >
+                    <button className={activeCategory === category.id ? 'active' : ''} onClick={() => setActiveCategory(category.id)}>
                       {category.name}
                     </button>
                   </li>
@@ -122,10 +158,7 @@ function ProductsContent() {
               <ul className="filter-list">
                 {PRICE_RANGES.map(range => (
                   <li key={range.id}>
-                    <button 
-                      className={activePrice === range.id ? 'active' : ''}
-                      onClick={() => setActivePrice(range.id)}
-                    >
+                    <button className={activePrice === range.id ? 'active' : ''} onClick={() => setActivePrice(range.id)}>
                       {range.name}
                     </button>
                   </li>
@@ -133,42 +166,62 @@ function ProductsContent() {
               </ul>
             </div>
           </div>
-          
+
           {/* Main Content */}
           <div className="products-main">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <p style={{ color: 'var(--text-muted)' }}>
-                Showing <span style={{ fontWeight: 'bold', color: 'var(--secondary)' }}>{filteredProducts.length}</span> results
+                {isLoading ? 'Loading products…' : <>Showing <span style={{ fontWeight: 'bold', color: 'var(--secondary)' }}>{filteredProducts.length}</span> results</>}
               </p>
             </div>
-            
-            {filteredProducts.length > 0 ? (
+
+            {/* Loading skeleton */}
+            {isLoading && (
               <div className="product-grid">
-                {filteredProducts.map(product => (
-                  <ProductCard key={product.id} product={product} />
+                {[1,2,3,4,5,6].map(i => (
+                  <div key={i} style={{ backgroundColor: 'var(--white)', borderRadius: '1rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                    <div style={{ height: '220px', backgroundColor: '#F1F5F9', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                    <div style={{ padding: '1rem' }}>
+                      <div style={{ height: '1rem', backgroundColor: '#F1F5F9', borderRadius: '0.5rem', marginBottom: '0.5rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                      <div style={{ height: '0.75rem', backgroundColor: '#F1F5F9', borderRadius: '0.5rem', width: '60%', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                    </div>
+                  </div>
                 ))}
               </div>
-            ) : (
+            )}
+
+            {/* Error State */}
+            {fetchError && !isLoading && (
               <div style={{ backgroundColor: 'var(--white)', padding: '4rem', textAlign: 'center', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                <Search size={48} style={{ margin: '0 auto 1rem', color: '#CBD5E1' }} />
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>No products found</h3>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Try adjusting your filters or search query.</p>
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setActiveCategory('all');
-                    setActivePrice('all');
-                    setSearchQuery('');
-                  }}
-                >
-                  Clear all filters
-                </button>
+                <p style={{ color: 'var(--error)', marginBottom: '0.5rem', fontWeight: '600' }}>Could not load products</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{fetchError}</p>
               </div>
+            )}
+
+            {/* Products or empty state */}
+            {!isLoading && !fetchError && (
+              filteredProducts.length > 0 ? (
+                <div className="product-grid">
+                  {filteredProducts.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ backgroundColor: 'var(--white)', padding: '4rem', textAlign: 'center', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+                  <Search size={48} style={{ margin: '0 auto 1rem', color: '#CBD5E1' }} />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>No products found</h3>
+                  <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Try adjusting your filters or search query.</p>
+                  <button className="btn btn-primary" onClick={() => { setActiveCategory('all'); setActivePrice('all'); setSearchQuery(''); }}>
+                    Clear all filters
+                  </button>
+                </div>
+              )
             )}
           </div>
         </div>
 
       </div>
+      <style>{`@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }`}</style>
     </div>
   );
 }

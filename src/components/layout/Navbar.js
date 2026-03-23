@@ -43,6 +43,11 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="navbar-actions">
+          <Link href="/admin" className="navbar-actions-link">
+            <User size={24} />
+            <span style={{ marginTop: '0.25rem' }}>Admin</span>
+          </Link>
+          
           <Link href="/auth/login" className="navbar-actions-link">
             <User size={24} />
             <span style={{ marginTop: '0.25rem' }}>Login</span>
@@ -142,6 +147,11 @@ export default function Navbar() {
               </li>
             ))}
             <li style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
+              <Link href="/admin" style={{ color: 'var(--text-color)' }} onClick={() => setIsMobileMenuOpen(false)}>
+                Admin Dashboard
+              </Link>
+            </li>
+            <li>
               <Link href="/repair/book" style={{ color: 'var(--primary)', fontWeight: 'bold' }} onClick={() => setIsMobileMenuOpen(false)}>
                 Book a Repair Service
               </Link>

@@ -34,6 +34,7 @@ export default function Footer() {
               <li><Link href="/products">Shop All</Link></li>
               <li><Link href="/about">About Us</Link></li>
               <li><Link href="/contact">Contact</Link></li>
+              <li><Link href="/admin">Admin Dashboard</Link></li>
             </ul>
           </div>
 

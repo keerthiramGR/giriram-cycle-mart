@@ -108,7 +108,7 @@ export default function CheckoutPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (cart.length === 0) {
       toast.error('Your cart is empty!');
@@ -119,13 +119,51 @@ export default function CheckoutPage() {
       return;
     }
     setIsSubmitting(true);
-    setTimeout(() => {
-      const newOrderId = 'ORD-' + Math.floor(10000 + Math.random() * 90000);
-      setOrderId(newOrderId);
+    const toastId = toast.loading('Placing your order...');
+    try {
+      const shippingAddress = {
+        address: form.address,
+        landmark: form.landmark,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        deliveryNotes: form.deliveryNotes,
+      };
+
+      const cartItems = cart.map(item => ({
+        productId: item.id || null,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: form.fullName,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+          shippingAddress,
+          paymentMethod: form.paymentMethod,
+          cartItems,
+          totalAmount: grandTotal,
+          shippingCost,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+
+      toast.success('Order placed successfully!', { id: toastId });
+      setOrderId(json.orderRef || json.orderId);
       setOrderPlaced(true);
       clearCart();
+    } catch (err) {
+      toast.error('Failed to place order: ' + err.message, { id: toastId });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   if (orderPlaced) {

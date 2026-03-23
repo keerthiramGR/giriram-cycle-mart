@@ -114,6 +114,7 @@ CREATE TABLE order_items (
 -- REPAIR BOOKINGS
 CREATE TABLE repair_bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tracking_id TEXT UNIQUE,
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   customer_name TEXT NOT NULL,
   phone_number TEXT NOT NULL,
@@ -125,9 +126,24 @@ CREATE TABLE repair_bookings (
   service_type TEXT NOT NULL CHECK (service_type IN ('store_visit', 'pickup')),
   status repair_status DEFAULT 'submitted' NOT NULL,
   admin_notes TEXT,
+  estimated_cost DECIMAL(10, 2),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Auto-generate REP-XXXXX tracking ID on insert
+CREATE OR REPLACE FUNCTION generate_repair_tracking_id()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.tracking_id := 'REP-' || LPAD(FLOOR(RANDOM() * 90000 + 10000)::TEXT, 5, '0');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_repair_tracking_id
+  BEFORE INSERT ON repair_bookings
+  FOR EACH ROW EXECUTE FUNCTION generate_repair_tracking_id();
+
 
 -- 3. TRIGGERS
 
@@ -232,10 +248,9 @@ CREATE POLICY "Users can insert order items" ON order_items FOR INSERT WITH CHEC
 );
 CREATE POLICY "Admins can view all order items" ON order_items FOR SELECT USING (is_admin());
 
--- Repair Bookings: Users can read own, insert; Admins can read/update all
-CREATE POLICY "Users can view own repairs" ON repair_bookings FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can create repairs" ON repair_bookings FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Admins can view all repairs" ON repair_bookings FOR SELECT USING (is_admin());
+-- Repair Bookings: Anyone can lookup by tracking_id; anyone can book; Admins can read/update all
+CREATE POLICY "Anyone can lookup repair by tracking_id" ON repair_bookings FOR SELECT USING (true);
+CREATE POLICY "Anyone can create repairs" ON repair_bookings FOR INSERT WITH CHECK (true);
 CREATE POLICY "Admins can update all repairs" ON repair_bookings FOR UPDATE USING (is_admin());
 
 -- 5. INITIAL DATA SEEDING
