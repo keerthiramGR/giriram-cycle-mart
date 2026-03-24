@@ -1,0 +1,32 @@
+[
+  {
+    "id": "091e1335-77ce-42b3-b4b9-309fd24e57c0",
+    "category_id": "d9732113-c56e-48e4-b10a-79c76f24cc68",
+    "name": "cyclee",
+    "slug": "cyclee-1774373648408",
+    "description": null,
+    "price": 500,
+    "compare_at_price": null,
+    "brand": null,
+    "stock_quantity": 100,
+    "is_featured": false,
+    "primary_image_url": "blob:http://localhost:3000/597f978c-624b-40e5-9ca5-01146af299ef",
+    "created_at": "2026-03-24T17:34:16.244309+00:00",
+    "updated_at": "2026-03-24T17:34:16.244309+00:00"
+  },
+  {
+    "id": "3523ae45-f6eb-445d-b3c7-0297968e840b",
+    "category_id": "d9732113-c56e-48e4-b10a-79c76f24cc68",
+    "name": "hero",
+    "slug": "hero-1774274319387",
+    "description": null,
+    "price": 12000,
+    "compare_at_price": null,
+    "brand": null,
+    "stock_quantity": 12,
+    "is_featured": false,
+    "primary_image_url": "blob:http://localhost:3000/244a5227-8fad-46f6-a982-844c05811590",
+    "created_at": "2026-03-23T13:58:44.026115+00:00",
+    "updated_at": "2026-03-24T17:27:48.659655+00:00"
+  }
+]

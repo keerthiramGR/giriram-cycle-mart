@@ -2,12 +2,16 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X, ShoppingCart, User, Search } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { cartCount } = useCart();
+  const pathname = usePathname();
+
+  if (pathname?.startsWith('/admin')) return null;
 
   const categories = [
     { name: 'Adult Cycles', path: '/products?category=adult-cycles' },
@@ -43,10 +47,6 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="navbar-actions">
-          <Link href="/admin" className="navbar-actions-link">
-            <User size={24} />
-            <span style={{ marginTop: '0.25rem' }}>Admin</span>
-          </Link>
           
           <Link href="/auth/login" className="navbar-actions-link">
             <User size={24} />
@@ -146,11 +146,6 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
-            <li style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
-              <Link href="/admin" style={{ color: 'var(--text-color)' }} onClick={() => setIsMobileMenuOpen(false)}>
-                Admin Dashboard
-              </Link>
-            </li>
             <li>
               <Link href="/repair/book" style={{ color: 'var(--primary)', fontWeight: 'bold' }} onClick={() => setIsMobileMenuOpen(false)}>
                 Book a Repair Service

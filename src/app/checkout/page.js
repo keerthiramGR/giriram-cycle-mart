@@ -21,7 +21,7 @@ const BANK_DETAILS = {
 };
 
 export default function CheckoutPage() {
-  const { cart, cartTotal, clearCart } = useCart();
+  const { cart, cartTotal, clearCart, shippingOption } = useCart();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -47,7 +47,7 @@ export default function CheckoutPage() {
 
   const STATES = ['Tamil Nadu', 'Karnataka', 'Kerala', 'Andhra Pradesh', 'Telangana', 'Maharashtra', 'Delhi', 'Other'];
 
-  const shippingCost = cartTotal > 5000 ? 0 : 149;
+  const shippingCost = shippingOption === 'express' ? 500 : 0;
   const grandTotal = cartTotal + shippingCost;
 
   const upiPaymentString = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${grandTotal}&cu=INR`;
@@ -328,7 +328,7 @@ export default function CheckoutPage() {
                         <div className="payment-qr-section">
                           <p style={{ fontWeight: '700', color: 'var(--secondary)', fontSize: '1rem' }}>Scan to Pay ₹{grandTotal.toLocaleString('en-IN')}</p>
                           <div style={{ borderRadius: '1rem', overflow: 'hidden', border: '3px solid #e5e7eb', display: 'inline-block' }}>
-                            <Image src="/payment-qr.jpg" alt="GPay QR Code" width={200} height={200} style={{ display: 'block' }} />
+                            <img src="/payment-qr.jpg" alt="GPay QR Code" style={{ display: 'block', width: '200px', height: '200px', objectFit: 'contain' }} />
                           </div>
                           <p className="payment-qr-label">Open GPay / PhonePe / Paytm and scan this QR code</p>
                           <div className="payment-qr-upi-id">
@@ -473,8 +473,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="summary-row"><span>Subtotal</span><span>₹{cartTotal.toLocaleString('en-IN')}</span></div>
-                  <div className="summary-row"><span>Shipping</span><span style={{ color: shippingCost === 0 ? 'var(--success)' : undefined }}>{shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}</span></div>
-                  {shippingCost > 0 && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Free delivery on orders above ₹5,000</p>}
+                  <div className="summary-row"><span>Shipping ({shippingOption === 'express' ? 'Express' : 'Standard'})</span><span style={{ color: shippingCost === 0 ? 'var(--success)' : undefined }}>{shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}</span></div>
                   <div className="summary-total"><span>Grand Total</span><span style={{ color: 'var(--primary)' }}>₹{grandTotal.toLocaleString('en-IN')}</span></div>
 
                   {(form.paymentMethod === 'upi' || form.paymentMethod === 'bank') && !paymentScreenshot && (

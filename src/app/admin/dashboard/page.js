@@ -393,7 +393,7 @@ export default function AdminDashboardPage() {
                     <thead><tr style={{ backgroundColor: 'var(--bg-color)', borderBottom: '1px solid var(--border-color)' }}>
                       <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Order Ref</th>
                       <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Customer</th>
-                      <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Phone</th>
+                      <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Location</th>
                       <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Payment</th>
                       <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Total</th>
                       <th style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>Status</th>
@@ -402,8 +402,19 @@ export default function AdminDashboardPage() {
                     <tbody>{orders.map(o => (
                       <tr key={o.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                         <td style={{ padding: '1rem 1.5rem', fontWeight: '500' }}>{o.order_ref || o.id.slice(0,8)}</td>
-                        <td style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)' }}><div>{o.customer_name || 'Guest'}</div><div style={{ fontSize: '0.75rem' }}>{o.customer_email}</div></td>
-                        <td style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>{o.customer_phone || '—'}</td>
+                        <td style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)' }}>
+                          <div style={{ color: 'var(--secondary)', fontWeight: '600' }}>{o.customer_name || 'Guest'}</div>
+                          <div style={{ fontSize: '0.75rem', marginTop: '0.125rem' }}>{o.customer_phone || '—'}</div>
+                          <div style={{ fontSize: '0.75rem' }}>{o.customer_email}</div>
+                        </td>
+                        <td style={{ padding: '1rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                          {o.shipping_address ? (
+                            <>
+                              <div>{o.shipping_address.city}, {o.shipping_address.state}</div>
+                              <div style={{ fontSize: '0.75rem' }}>{o.shipping_address.pincode}</div>
+                            </>
+                          ) : '—'}
+                        </td>
                         <td style={{ padding: '1rem 1.5rem' }}><span style={{ padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: '#F3F4F6', color: '#374151' }}>{o.payment_method}</span></td>
                         <td style={{ padding: '1rem 1.5rem', fontWeight: '600' }}>₹{Number(o.total_amount).toLocaleString('en-IN')}</td>
                         <td style={{ padding: '1rem 1.5rem' }}><span style={{ padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold', ...statusColor(o.status) }}>{fmtStatus(o.status)}</span></td>

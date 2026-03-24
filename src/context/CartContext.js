@@ -48,6 +48,17 @@ export const CartProvider = ({ children }) => {
     });
   };
 
+  const buyNow = (product, quantity = 1) => {
+    setCart([{ 
+      id: product.id,
+      name: product.name,
+      brand: product.brand || '',
+      price: product.price,
+      primary_image_url: product.images ? product.images[0] : (product.primary_image_url || ''),
+      quantity 
+    }]);
+  };
+
   const removeFromCart = (itemId) => {
     setCart(prev => prev.filter(item => item.id !== itemId));
   };
@@ -75,6 +86,7 @@ export const CartProvider = ({ children }) => {
       shippingOption,
       setShippingOption,
       addToCart,
+      buyNow,
       removeFromCart,
       updateQuantity,
       clearCart

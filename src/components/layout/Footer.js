@@ -1,7 +1,13 @@
+"use client";
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname?.startsWith('/admin')) return null;
+
   return (
     <footer className="footer">
       <div className="container">
@@ -34,7 +40,6 @@ export default function Footer() {
               <li><Link href="/products">Shop All</Link></li>
               <li><Link href="/about">About Us</Link></li>
               <li><Link href="/contact">Contact</Link></li>
-              <li><Link href="/admin">Admin Dashboard</Link></li>
             </ul>
           </div>
 

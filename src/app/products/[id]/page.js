@@ -1,75 +1,105 @@
 "use client";
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import Button from '@/components/ui/Button';
 import { Star, Truck, Shield, ArrowLeft, Check, Plus, Minus, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const DUMMY_PRODUCTS = {
-  'hercules-roadeo': {
-    id: 1, slug: 'hercules-roadeo', name: 'Hercules Roadeo Hannibal 27.5T', brand: 'Hercules', price: 14500, compare_at_price: 16000,
-    description: 'The Hercules Roadeo Hannibal is a premium 27.5T mountain bike designed for thrill-seekers. Featuring a sturdy alloy frame, 21-speed Shimano gears, and dual disc brakes.',
-    features: ['21-Speed Shimano Tourney Gearing', 'Dual Disc Brakes', 'Lightweight Alloy Frame', 'Front suspension fork with 60mm travel', '27.5" wide nylon tires'],
-    category: 'Adult Cycles', stock_quantity: 5,
-    images: ['https://images.unsplash.com/photo-1576435728678-68ce0f6eb293?auto=format&fit=crop&w=800&q=80', 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=800&q=80'],
-    reviews: { count: 124, rating: 4.8 }
-  },
-  'hero-kyoto': {
-    id: 2, slug: 'hero-kyoto', name: 'Hero Kyoto 26T Single Speed', brand: 'Hero', price: 6499, compare_at_price: 7999,
-    description: 'A perfect bicycle for daily commuting. Single speed, easy to maintain, and highly durable.',
-    features: ['Single Speed', 'V-Brakes', 'Steel Frame', 'Anti-skid pedals'],
-    category: 'Mountain Bikes', stock_quantity: 12,
-    images: ['https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=800&q=80'],
-    reviews: { count: 89, rating: 4.2 }
-  },
-  'kids-electric-jeep': {
-    id: 3, slug: 'kids-electric-jeep', name: 'Kids 12V Battery Operated Jeep', brand: 'ToyHouse', price: 18999, compare_at_price: 22000,
-    description: 'An exciting battery-powered ride-on jeep for kids. Features realistic design, working headlights, and a powerful 12V motor for hours of outdoor fun.',
-    features: ['12V Battery Powered', 'Working LED Headlights', 'MP3/USB Input', 'Parental Remote Control', 'Max Weight 30kg'],
-    category: 'Kids Ride-on Vehicles', stock_quantity: 3,
-    images: ['https://images.unsplash.com/photo-1596461404969-9ce20c71c4c1?auto=format&fit=crop&w=800&q=80'],
-    reviews: { count: 56, rating: 4.5 }
-  },
-  'smart-helmet': {
-    id: 4, slug: 'smart-helmet', name: 'Lumos Matrix Smart Helmet', brand: 'Lumos', price: 8999, compare_at_price: 9999,
-    description: 'The world\u2019s first smart helmet with integrated LED lights and turn signals. Stay visible and safe on your rides with customizable light patterns.',
-    features: ['Integrated LED Matrix', 'Turn Signals via Remote', 'MIPS Safety System', 'USB-C Rechargeable', 'iOS & Android App'],
-    category: 'Accessories', stock_quantity: 20,
-    images: ['https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=800&q=80'],
-    reviews: { count: 210, rating: 4.7 }
-  },
-  'hero-sprint': {
-    id: 5, slug: 'hero-sprint', name: 'Hero Sprint Pro 27.5T', brand: 'Hero', price: 11200, compare_at_price: 13500,
-    description: 'A versatile multi-speed mountain bike for enthusiasts. Features Shimano gears, front suspension, and durable double-wall alloy rims.',
-    features: ['21-Speed Shimano Gears', 'Front Suspension', 'Double-Wall Alloy Rims', 'Disc Brakes', 'Quick Release Wheels'],
-    category: 'Adult Cycles', stock_quantity: 0,
-    images: ['https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?auto=format&fit=crop&w=800&q=80'],
-    reviews: { count: 67, rating: 4.0 }
-  },
-  'emotorad-x1': {
-    id: 6, slug: 'emotorad-x1', name: 'EMotorad X1 Electric Cycle', brand: 'EMotorad', price: 24999, compare_at_price: 28000,
-    description: 'India\u2019s most popular electric bicycle. With a 250W motor, 25km/h top speed, and 30km+ range, commute effortlessly while staying eco-friendly.',
-    features: ['250W Brushless Motor', '7.65Ah Lithium Battery', '30km+ Range', '7-Speed Shimano Gears', 'LED Display & Controls'],
-    category: 'Electric Cycles', stock_quantity: 4,
-    images: ['https://images.unsplash.com/photo-1571068316344-75bc76f77890?auto=format&fit=crop&w=800&q=80'],
-    reviews: { count: 143, rating: 4.6 }
-  },
-};
+import { createClient } from '@/lib/supabase/client';
 
 export default function ProductDetailPage({ params }) {
-  const { id } = use(params);
-  const product = DUMMY_PRODUCTS[id];
+  // Gracefully handle Next.js 15 params promise or Next.js 14 params object
+  const idValue = params && typeof params.then === 'function' ? use(params).id : params?.id;
+  const id = idValue ? decodeURIComponent(idValue) : null;
 
-  const { addToCart } = useCart();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [errorStatus, setErrorStatus] = useState(null);
+
+  const { addToCart, buyNow } = useCart();
   const router = useRouter();
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
+  const [isBuying, setIsBuying] = useState(false);
 
-  if (!product) {
+  useEffect(() => {
+    async function fetchProduct() {
+      if (!id) return;
+      try {
+        const supabase = createClient();
+        
+        let finalData = null;
+
+        // Try fetch by slug first
+        const { data: slugData, error: slugError } = await supabase
+          .from('products')
+          .select('*, categories(name, slug)')
+          .eq('slug', String(id))
+          .single();
+
+        if (slugData && !slugError) {
+          finalData = slugData;
+        } else {
+          // Fallback to fetch by id if it's a valid uuid pattern (this avoids Postgres 22P02 errors)
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id));
+          if (isUuid) {
+            const { data: idData, error: idError } = await supabase
+              .from('products')
+              .select('*, categories(name, slug)')
+              .eq('id', String(id))
+              .single();
+            if (idData && !idError) {
+              finalData = idData;
+            }
+          }
+        }
+
+        if (!finalData) {
+          setErrorStatus('not_found');
+        } else {
+          const data = finalData;
+          // Normalize the product output to match what the UI expects
+          setProduct({
+            id: data.id,
+            slug: data.slug,
+            name: data.name,
+            brand: data.brand || 'Giriram',
+            price: Number(data.price),
+            compare_at_price: data.compare_at_price ? Number(data.compare_at_price) : Number(data.price),
+            description: data.description || 'A great product from Giriram Cycle Mart.',
+            features: [
+              'High quality materials',
+              'Durable and long-lasting',
+              'Easy to use',
+              '1 Year Warranty'
+            ],
+            category: data.categories?.name || 'Accessories',
+            stock_quantity: data.stock_quantity,
+            images: [data.primary_image_url || 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=800&q=80'],
+            reviews: { count: 0, rating: 5.0 }
+          });
+        }
+      } catch (err) {
+        setErrorStatus('error');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div style={{ backgroundColor: 'var(--bg-color)', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Loading product details...</p>
+      </div>
+    );
+  }
+
+  if (errorStatus === 'not_found' || !product) {
     return (
       <div style={{ backgroundColor: 'var(--bg-color)', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
         <div style={{ textAlign: 'center' }}>
@@ -81,7 +111,10 @@ export default function ProductDetailPage({ params }) {
     );
   }
 
-  const discount = Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100);
+  // Calculate discount only if compare_at_price is greater than price. We use Math.max to prevent negative or NaN.
+  const discount = product.compare_at_price && product.compare_at_price > product.price 
+    ? Math.max(0, Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100))
+    : 0;
 
   const handleAddToCart = () => {
     setIsAdding(true);
@@ -91,7 +124,9 @@ export default function ProductDetailPage({ params }) {
   };
 
   const handleBuyNow = () => {
-    addToCart(product, quantity);
+    if (isBuying) return;
+    setIsBuying(true);
+    buyNow(product, quantity);
     router.push('/checkout');
   };
 
@@ -143,7 +178,7 @@ export default function ProductDetailPage({ params }) {
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem', marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid var(--border-color)' }}>
               <span style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--text-main)' }}>₹{product.price.toLocaleString('en-IN')}</span>
-              {product.compare_at_price > product.price && (
+              {discount > 0 && (
                 <>
                   <span style={{ fontSize: '1.25rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{product.compare_at_price.toLocaleString('en-IN')}</span>
                   <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '0.875rem' }}>{discount}% OFF</span>
@@ -182,8 +217,8 @@ export default function ProductDetailPage({ params }) {
                 {isAdding ? 'Adding...' : product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
               </Button>
 
-              <button onClick={handleBuyNow} disabled={product.stock_quantity === 0} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', fontSize: '1.125rem', fontWeight: '700', borderRadius: '0.5rem', backgroundColor: 'var(--secondary)', color: 'white', cursor: product.stock_quantity === 0 ? 'not-allowed' : 'pointer', opacity: product.stock_quantity === 0 ? 0.5 : 1 }}>
-                <Zap size={20} /> Buy Now
+              <button onClick={handleBuyNow} disabled={product.stock_quantity === 0 || isBuying} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '1rem', fontSize: '1.125rem', fontWeight: '700', borderRadius: '0.5rem', backgroundColor: 'var(--secondary)', color: 'white', cursor: (product.stock_quantity === 0 || isBuying) ? 'not-allowed' : 'pointer', opacity: (product.stock_quantity === 0 || isBuying) ? 0.5 : 1 }}>
+                <Zap size={20} /> {isBuying ? 'Processing...' : 'Buy Now'}
               </button>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem' }}>

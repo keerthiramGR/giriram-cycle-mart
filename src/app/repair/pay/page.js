@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef, Suspense } from 'react';
+import { useState, useRef, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
-import { Wrench, Smartphone, Landmark, Upload, CheckCircle, Copy, CheckCheck, AlertTriangle } from 'lucide-react';
+import { Wrench, Smartphone, Landmark, Upload, CheckCircle, Copy, CheckCheck, AlertTriangle, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { createClient } from '@/lib/supabase/client';
 
 const UPI_ID = 'ramprakashgobi@oksbi';
 const UPI_NAME = 'Ramprakashgobi Ramprakash';
@@ -19,17 +19,13 @@ const BANK_DETAILS = {
   branch: 'Central Market Branch',
 };
 
-// Simulated repair data (in production this would come from Supabase)
-const REPAIRS_DB = {
-  'REP-12345': { customer: 'John Doe', cycle: 'Hero Sprint Pro 27.5T', issue: 'Brake loose', cost: 0, status: 'Pending' },
-  'REP-98765': { customer: 'Alice', cycle: 'Hercules Roadeo', issue: 'Gear shifting problem', cost: 1500, status: 'In Progress' },
-  'REP-55555': { customer: 'Rahul', cycle: 'Atlas Goldline', issue: 'Tire puncture & chain rust', cost: 800, status: 'Completed' },
-};
-
 function RepairPayContent() {
   const searchParams = useSearchParams();
   const refId = searchParams.get('ref') || '';
-  const repair = REPAIRS_DB[refId];
+  
+  const [repair, setRepair] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [errorStatus, setErrorStatus] = useState(null);
 
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [screenshot, setScreenshot] = useState(null);
@@ -39,7 +35,51 @@ function RepairPayContent() {
   const [isSuccess, setIsSuccess] = useState(false);
   const fileInputRef = useRef(null);
 
-  if (!repair) {
+  useEffect(() => {
+    async function fetchRepair() {
+      if (!refId) {
+        setLoading(false);
+        setErrorStatus('not_found');
+        return;
+      }
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('repair_bookings')
+          .select('*')
+          .eq('tracking_id', refId)
+          .single();
+
+        if (error || !data) {
+          setErrorStatus('not_found');
+        } else {
+          setRepair({
+            customer: data.customer_name,
+            cycle: data.cycle_model,
+            issue: data.issue_description,
+            cost: data.estimated_cost || 0,
+            status: data.status,
+            tracking_id: data.tracking_id
+          });
+        }
+      } catch (err) {
+        setErrorStatus('error');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRepair();
+  }, [refId]);
+
+  if (loading) {
+    return (
+      <div style={{ backgroundColor: 'var(--bg-color)', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Loading payment details...</p>
+      </div>
+    );
+  }
+
+  if (errorStatus === 'not_found' || !repair) {
     return (
       <div style={{ backgroundColor: 'var(--bg-color)', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
         <div style={{ textAlign: 'center', backgroundColor: 'var(--white)', padding: '3rem', borderRadius: '1.5rem', border: '1px solid var(--border-color)', maxWidth: '500px', width: '100%' }}>
@@ -65,7 +105,7 @@ function RepairPayContent() {
           </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '0.75rem' }}>Cost Not Set Yet</h1>
           <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-            The repair cost for <strong>{refId}</strong> hasn't been set by the store yet.
+            The repair cost for <strong>{repair.tracking_id}</strong> hasn't been set by the store yet.
           </p>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '2rem' }}>
             Our team is still diagnosing your cycle. You'll be notified once the cost is confirmed.
@@ -109,6 +149,7 @@ function RepairPayContent() {
       return;
     }
     setIsSubmitting(true);
+    // In production we would upload the screenshot to Supabase storage
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSuccess(true);
@@ -124,7 +165,7 @@ function RepairPayContent() {
           </div>
           <h1 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '0.75rem' }}>Payment Submitted!</h1>
           <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-            Your payment proof for <strong>{refId}</strong> has been received.
+            Your payment proof for <strong>{repair.tracking_id}</strong> has been received.
           </p>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '2rem' }}>
             We'll verify the payment and update your repair status. You can track your repair online.
@@ -142,6 +183,12 @@ function RepairPayContent() {
     <div style={{ backgroundColor: 'var(--bg-color)', minHeight: '100vh', padding: '3rem 0' }}>
       <div className="container repair-pay-container">
 
+        <div style={{ marginBottom: '2rem' }}>
+          <Link href="/repair/status" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: '500' }}>
+            <ArrowLeft size={16} style={{ marginRight: '0.5rem' }} /> Back to Status
+          </Link>
+        </div>
+
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ width: '64px', height: '64px', backgroundColor: 'rgba(255, 107, 0, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
@@ -153,7 +200,7 @@ function RepairPayContent() {
 
         {/* Repair Summary Card */}
         <div className="repair-pay-summary">
-          <div className="ref-badge">{refId}</div>
+          <div className="ref-badge">{repair.tracking_id}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
             <div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Customer</p>
@@ -169,7 +216,7 @@ function RepairPayContent() {
             </div>
             <div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Status</p>
-              <span style={{ padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: repair.status === 'Completed' ? '#D1FAE5' : '#EFF6FF', color: repair.status === 'Completed' ? '#065F46' : '#1E3A8A' }}>{repair.status}</span>
+              <span style={{ padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: repair.status === 'completed' ? '#D1FAE5' : '#EFF6FF', color: repair.status === 'completed' ? '#065F46' : '#1E3A8A' }}>{repair.status.replace('_', ' ')}</span>
             </div>
           </div>
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -216,7 +263,7 @@ function RepairPayContent() {
             <div className="payment-qr-section">
               <p style={{ fontWeight: '700', color: 'var(--secondary)', fontSize: '1rem' }}>Scan to Pay ₹{amount.toLocaleString('en-IN')}</p>
               <div style={{ borderRadius: '1rem', overflow: 'hidden', border: '3px solid #e5e7eb', display: 'inline-block' }}>
-                <Image src="/payment-qr.jpg" alt="GPay QR Code" width={220} height={220} style={{ display: 'block' }} />
+                <img src="/payment-qr.jpg" alt="GPay QR Code" style={{ display: 'block', width: '220px', height: '220px', objectFit: 'contain' }} />
               </div>
               <p className="payment-qr-label">Open GPay / PhonePe / Paytm and scan this QR code</p>
               <div className="payment-qr-upi-id">

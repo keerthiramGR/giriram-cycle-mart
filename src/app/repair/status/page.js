@@ -169,6 +169,17 @@ export default function RepairStatusPage() {
                   <p style={{ color: 'var(--secondary)', fontWeight: '600' }}>📅 {result.preferred_date}</p>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', textTransform: 'capitalize' }}>🕐 {result.preferred_time_slot}</p>
                 </div>
+                {result.estimated_cost !== null && result.estimated_cost > 0 && (
+                  <div style={{ gridColumn: '1/-1', backgroundColor: '#F0FDF4', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #BBF7D0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>Repair Cost</span>
+                      <p style={{ color: '#14532D', fontWeight: '800', fontSize: '1.5rem' }}>₹{result.estimated_cost.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div>
+                      <Button onClick={() => window.location.href=`/repair/pay?ref=${result.tracking_id}`} style={{ backgroundColor: '#16A34A', color: 'white', fontWeight: 'bold' }}>Pay Now</Button>
+                    </div>
+                  </div>
+                )}
                 {result.admin_notes && (
                   <div style={{ gridColumn: '1/-1', backgroundColor: '#FFFBEB', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #FDE68A' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>📝 Note from our team</span>
