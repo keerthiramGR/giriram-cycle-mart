@@ -32,6 +32,18 @@ export default function Footer() {
             </div>
           </div>
 
+          {/* Customer Service */}
+          <div className="footer-col">
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1rem', color: 'var(--white)' }}>Customer Service</h3>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <li><Link href="/track" style={{ color: '#E2E8F0', textDecoration: 'none', transition: 'color 0.2s' }}>Track Order/Repair</Link></li>
+              <li><Link href="/contact" style={{ color: '#E2E8F0', textDecoration: 'none', transition: 'color 0.2s' }}>Contact Us</Link></li>
+              <li><Link href="/faq" style={{ color: '#E2E8F0', textDecoration: 'none', transition: 'color 0.2s' }}>FAQ</Link></li>
+              <li><Link href="/shipping" style={{ color: '#E2E8F0', textDecoration: 'none', transition: 'color 0.2s' }}>Shipping Policy</Link></li>
+              <li><Link href="/returns" style={{ color: '#E2E8F0', textDecoration: 'none', transition: 'color 0.2s' }}>Returns & Exchanges</Link></li>
+            </ul>
+          </div>
+
           {/* Quick Links */}
           <div className="footer-col">
             <h3>Quick Links</h3>

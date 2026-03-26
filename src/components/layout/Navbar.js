@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ShoppingCart, User, Search } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { cartCount } = useCart();
+  const { user } = useAuth();
   const pathname = usePathname();
 
   if (pathname?.startsWith('/admin')) return null;
@@ -48,10 +50,17 @@ export default function Navbar() {
         {/* Desktop Actions */}
         <div className="navbar-actions">
           
-          <Link href="/auth/login" className="navbar-actions-link">
-            <User size={24} />
-            <span style={{ marginTop: '0.25rem' }}>Login</span>
-          </Link>
+          {user ? (
+            <Link href="/profile" className="navbar-actions-link" style={{ color: 'var(--primary)' }}>
+              <User size={24} />
+              <span style={{ marginTop: '0.25rem', fontWeight: 'bold' }}>Profile</span>
+            </Link>
+          ) : (
+            <Link href="/auth/login" className="navbar-actions-link">
+              <User size={24} />
+              <span style={{ marginTop: '0.25rem' }}>Login</span>
+            </Link>
+          )}
           
           <Link href="/cart" className="navbar-actions-link">
             <div className="navbar-cart">

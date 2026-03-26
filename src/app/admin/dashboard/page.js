@@ -8,12 +8,14 @@ import {
   PlusCircle, Edit, Trash2, X, Upload, Save, LogOut, Image as ImageIcon, IndianRupee, Link2, RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { createClient } from '@/lib/supabase/client';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [isAuthed, setIsAuthed] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Live Data State
   const [products, setProducts] = useState([]);
@@ -141,11 +143,32 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setProductForm({ ...productForm, image: URL.createObjectURL(file) });
-      toast.success('Image preview loaded! (For production, connect Supabase Storage)');
+      const toastId = toast.loading('Uploading image to secure storage...');
+      setIsUploading(true);
+      
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const json = await res.json();
+        if (json.error) throw new Error(json.error);
+        
+        setProductForm(prev => ({ ...prev, image: json.publicUrl }));
+        toast.success('Image securely uploaded!', { id: toastId });
+      } catch (err) {
+        toast.error('Image upload failed: ' + err.message, { id: toastId });
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -554,7 +577,9 @@ export default function AdminDashboardPage() {
                     <option>Adult Cycles</option><option>Kids Cycles</option><option>Electric Cycles</option><option>Mountain Bikes</option><option>Kids Ride-on Vehicles</option><option>Accessories</option>
                   </select>
                 </div>
-                <Button type="submit" className="btn-full" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><Save size={18} /> Save Product</Button>
+                <Button type="submit" className="btn-full" disabled={isUploading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: isUploading ? 0.6 : 1, cursor: isUploading ? 'not-allowed' : 'pointer' }}>
+                  <Save size={18} /> {isUploading ? 'Uploading Image...' : 'Save Product'}
+                </Button>
               </form>
             </div>
           </div>

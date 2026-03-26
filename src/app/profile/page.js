@@ -1,33 +1,65 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { User, Package, Wrench, LogOut, Settings, Clock, CheckCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 export default function UserProfilePage() {
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('orders');
 
-  const profileName = user?.user_metadata?.full_name || 'Guest User';
-  const profileEmail = user?.email || 'guest@example.com';
+  const [orders, setOrders] = useState([]);
+  const [repairs, setRepairs] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const profileName = user?.user_metadata?.full_name || 'Customer';
+  const profileEmail = user?.email || '';
   const profilePhone = user?.user_metadata?.phone || '';
+
+  // Auth Protection
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/auth/login');
+    }
+  }, [user, authLoading, router]);
+
+  // Fetch Live Data
+  useEffect(() => {
+    if (!user) return;
+    async function fetchUserData() {
+      const supabase = createClient();
+      
+      const { data: oData } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_email', profileEmail)
+        .order('created_at', { ascending: false });
+        
+      const { data: rData } = await supabase
+        .from('repairs')
+        .select('*')
+        .ilike('phone_number', `%${profilePhone || '000000000'}%`)
+        .order('created_at', { ascending: false });
+
+      setOrders(oData || []);
+      setRepairs(rData || []);
+      setLoadingData(false);
+    }
+    fetchUserData();
+  }, [user, profileEmail, profilePhone]);
 
   const handleSignOut = async () => {
     await signOut();
     router.push('/auth/login');
   };
 
-  const MOCK_ORDERS = [
-    { id: 'ORD-89234', date: 'Oct 28, 2023', total: 14500, status: 'Delivered', items: 'Hercules Roadeo Hannibal' },
-    { id: 'ORD-76492', date: 'Sep 15, 2023', total: 8999, status: 'Delivered', items: 'Lumos Matrix Smart Helmet' },
-  ];
-
-  const MOCK_REPAIRS = [
-    { id: 'REP-12345', date: 'Oct 24, 2023', cost: 850, status: 'In Progress', cycle: 'Hero Sprint Pro 27.5T' },
-  ];
+  if (authLoading || (!user && !authLoading)) {
+    return <div style={{ padding: '6rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading securely...</div>;
+  }
 
   return (
     <div style={{ backgroundColor: 'var(--bg-color)', minHeight: '100vh', padding: '3rem 0' }}>
@@ -87,17 +119,19 @@ export default function UserProfilePage() {
                   <Package style={{ marginRight: '0.75rem', color: 'var(--primary)' }} /> My Orders
                 </h2>
                 
-                {MOCK_ORDERS.length > 0 ? (
+                {loadingData ? (
+                  <p style={{ color: 'var(--text-muted)' }}>Fetching your orders...</p>
+                ) : orders.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {MOCK_ORDERS.map((order) => (
+                    {orders.map((order) => (
                       <div key={order.id} style={{ border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1.25rem', transition: 'border-color 0.2s' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
                           <div>
-                            <span style={{ fontFamily: 'monospace', fontSize: '0.875rem', fontWeight: '700', color: 'var(--secondary)', backgroundColor: '#F1F5F9', padding: '0.25rem 0.5rem', borderRadius: '0.375rem' }}>{order.id}</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginLeft: '0.75rem' }}>Placed on {order.date}</span>
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.875rem', fontWeight: '700', color: 'var(--secondary)', backgroundColor: '#F1F5F9', padding: '0.25rem 0.5rem', borderRadius: '0.375rem' }}>{order.order_ref || order.id.slice(0,8)}</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginLeft: '0.75rem' }}>Placed normally</span>
                           </div>
                           <div style={{ fontWeight: '800', fontSize: '1.125rem', color: 'var(--secondary)', marginTop: '0.5rem' }}>
-                            ₹{order.total.toLocaleString('en-IN')}
+                            ₹{Number(order.total_amount || 0).toLocaleString('en-IN')}
                           </div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -105,9 +139,9 @@ export default function UserProfilePage() {
                             <div style={{ width: '3rem', height: '3rem', backgroundColor: '#F1F5F9', borderRadius: '0.5rem', marginRight: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
                               <Package size={24} />
                             </div>
-                            <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>{order.items}</span>
+                            <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>{JSON.parse(order.items || '[]').length} Items</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', fontWeight: '500', color: 'var(--success)', backgroundColor: '#ECFDF5', padding: '0.375rem 0.75rem', borderRadius: '9999px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', fontWeight: '500', color: 'var(--success)', backgroundColor: '#ECFDF5', padding: '0.375rem 0.75rem', borderRadius: '9999px', textTransform: 'capitalize' }}>
                             <CheckCircle size={16} style={{ marginRight: '0.375rem' }} /> {order.status}
                           </div>
                         </div>
@@ -131,17 +165,19 @@ export default function UserProfilePage() {
                   <Wrench style={{ marginRight: '0.75rem', color: 'var(--primary)' }} /> Repair History
                 </h2>
                 
-                {MOCK_REPAIRS.length > 0 ? (
+                {loadingData ? (
+                  <p style={{ color: 'var(--text-muted)' }}>Fetching repair requests...</p>
+                ) : repairs.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {MOCK_REPAIRS.map((repair) => (
+                    {repairs.map((repair) => (
                       <div key={repair.id} style={{ border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1.25rem' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
                           <div>
-                            <span style={{ fontFamily: 'monospace', fontSize: '0.875rem', fontWeight: '700', color: 'var(--primary)', backgroundColor: 'rgba(255,107,0,0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.375rem' }}>{repair.id}</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginLeft: '0.75rem' }}>Booked on {repair.date}</span>
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.875rem', fontWeight: '700', color: 'var(--primary)', backgroundColor: 'rgba(255,107,0,0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.375rem' }}>{repair.tracking_id}</span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginLeft: '0.75rem' }}>Booked {repair.preferred_date}</span>
                           </div>
                           <div style={{ fontWeight: '800', fontSize: '1.125rem', color: 'var(--secondary)', marginTop: '0.5rem' }}>
-                            Est. ₹{repair.cost.toLocaleString('en-IN')}
+                            Est. ₹{Number(repair.estimated_cost || 0).toLocaleString('en-IN')}
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
@@ -149,9 +185,9 @@ export default function UserProfilePage() {
                             <div style={{ width: '3rem', height: '3rem', backgroundColor: '#F1F5F9', borderRadius: '0.5rem', marginRight: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
                               <Wrench size={24} />
                             </div>
-                            <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>{repair.cycle}</span>
+                            <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>{repair.cycle_model}</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', fontWeight: '600', color: '#D97706', backgroundColor: '#FEF3C7', border: '1px solid #FDE68A', padding: '0.5rem 1rem', borderRadius: '9999px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', fontWeight: '600', color: '#D97706', backgroundColor: '#FEF3C7', border: '1px solid #FDE68A', padding: '0.5rem 1rem', borderRadius: '9999px', textTransform: 'capitalize' }}>
                             <Clock size={16} style={{ marginRight: '0.375rem' }} /> {repair.status}
                           </div>
                         </div>
