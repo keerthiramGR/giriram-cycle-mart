@@ -262,7 +262,7 @@ export default function CheckoutPage() {
                   <div className="form-group">
                     <label className="form-label">City *</label>
                     <div style={{ position: 'relative' }}>
-                      <input name="city" type="text" className="form-input" placeholder="Bangalore" value={form.city} onChange={handleChange} required style={{ paddingLeft: '2.5rem' }} />
+                      <input name="city" type="text" className="form-input" placeholder="Gobichettipalayam" value={form.city} onChange={handleChange} required style={{ paddingLeft: '2.5rem' }} />
                       <Building size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     </div>
                   </div>
