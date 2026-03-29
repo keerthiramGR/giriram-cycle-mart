@@ -535,8 +535,8 @@ export default function AdminDashboardPage() {
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '1.5rem' }}>Store Settings</h2>
                 <div className="form-grid">
                   <div className="form-group"><label className="form-label">Store Name</label><input className="form-input" defaultValue="GIRIRAM CYCLE MART" /></div>
-                  <div className="form-group"><label className="form-label">Phone</label><input className="form-input" defaultValue="+91 98765 43210" /></div>
-                  <div className="form-group focus-full"><label className="form-label">Address</label><input className="form-input" defaultValue="123 Cycle Street, Central Market, Bangalore 560001" /></div>
+                  <div className="form-group"><label className="form-label">Phone</label><input className="form-input" defaultValue="+91 98652 22646" /></div>
+                  <div className="form-group focus-full"><label className="form-label">Address</label><input className="form-input" defaultValue="SH 15, Gobichettipalayam, Tamil Nadu 638452" /></div>
                   <div className="form-group"><label className="form-label">Email</label><input className="form-input" defaultValue="support@giriramcycles.com" /></div>
                 </div>
                 <Button style={{ marginTop: '1rem' }}><Save size={18} style={{ marginRight: '0.5rem' }} /> Save Settings</Button>

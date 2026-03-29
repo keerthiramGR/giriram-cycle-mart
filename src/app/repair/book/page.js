@@ -127,7 +127,7 @@ export default function RepairBookingPage() {
                       </div>
                       <div>
                         <label className="form-label">Phone Number</label>
-                        <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="form-input" placeholder="+91 98765 43210" />
+                        <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="form-input" placeholder="+91 98652 22646" />
                       </div>
                     </div>
                   </div>

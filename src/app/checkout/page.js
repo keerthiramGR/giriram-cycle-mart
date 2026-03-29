@@ -230,7 +230,7 @@ export default function CheckoutPage() {
                   <div className="form-group">
                     <label className="form-label">Phone Number *</label>
                     <div style={{ position: 'relative' }}>
-                      <input name="phone" type="tel" className="form-input" placeholder="+91 98765 43210" value={form.phone} onChange={handleChange} required style={{ paddingLeft: '2.5rem' }} />
+                      <input name="phone" type="tel" className="form-input" placeholder="+91 98652 22646" value={form.phone} onChange={handleChange} required style={{ paddingLeft: '2.5rem' }} />
                       <Phone size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     </div>
                   </div>

@@ -72,11 +72,11 @@ export default function Footer() {
             <ul className="footer-links" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                 <MapPin size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span>123 Cycle Street, Central Market<br/>Bangalore, India 560001</span>
+                <span>SH 15, Gobichettipalayam<br/>Tamil Nadu 638452</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Phone size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                <span>+91 98765 43210</span>
+                <span>+91 98652 22646</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Mail size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />

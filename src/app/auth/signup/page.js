@@ -58,7 +58,7 @@ function SignupForm() {
 
         <div className="form-group">
           <label htmlFor="phone" className="form-label">Phone Number</label>
-          <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required className="form-input" placeholder="+91 98765 43210" />
+          <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required className="form-input" placeholder="+91 98652 22646" />
         </div>
 
         <div className="form-group">
