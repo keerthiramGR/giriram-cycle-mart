@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 import SplashScreen from '@/components/ui/SplashScreen';
 import HeroBanner from '@/components/home/HeroBanner';
 import CategorySection from '@/components/home/CategorySection';
@@ -10,6 +12,14 @@ import RepairCTA from '@/components/home/RepairCTA';
 export default function Home() {
   const [showSplash, setShowSplash] = useState(false);
   const [ready, setReady] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/auth/signup');
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     // Show splash only once per browser session
@@ -21,7 +31,7 @@ export default function Home() {
     setReady(true);
   }, []);
 
-  if (!ready) return null;
+  if (!ready || authLoading || !user) return null;
 
   if (showSplash) return <SplashScreen />;
 
