@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 // Public products endpoint — uses anon key, respects RLS (products are public)
 export async function GET() {
   try {

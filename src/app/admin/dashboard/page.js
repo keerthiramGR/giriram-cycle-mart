@@ -111,6 +111,10 @@ export default function AdminDashboardPage() {
 
   const handleProductSubmit = async (e) => {
     e.preventDefault();
+    if (productForm.image && productForm.image.startsWith('blob:')) {
+      toast.error('Image upload is still in progress or failed. Please wait or upload again.');
+      return;
+    }
     const toastId = toast.loading(editingProduct ? 'Updating product...' : 'Adding product...');
     try {
       const payload = { ...productForm, id: editingProduct?.id };
@@ -381,8 +385,8 @@ export default function AdminDashboardPage() {
                         <tr key={p.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                           <td style={{ padding: '1rem 1.5rem', fontWeight: '500' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <div style={{ width: '40px', height: '40px', backgroundColor: '#f1f5f9', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0 }}>
-                                {p.primary_image_url ? <img src={p.primary_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : null}
+                              <div style={{ width: '40px', height: '40px', backgroundColor: '#f1f5f9', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {p.primary_image_url ? <img src={p.primary_image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <ImageIcon size={20} style={{ color: '#94A3B8' }} />}
                               </div>
                               {p.name}
                             </div>

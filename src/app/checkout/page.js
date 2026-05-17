@@ -1,24 +1,13 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
-import Image from 'next/image';
-import { CreditCard, Truck, MapPin, Phone, User, Mail, Home, Building, Navigation, Banknote, Smartphone, CheckCircle, Upload, ImageIcon, Landmark, Copy, CheckCheck } from 'lucide-react';
+import Script from 'next/script';
+import { CreditCard, Truck, MapPin, Phone, User, Mail, Home, Building, Navigation, Banknote, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const UPI_ID = 'ramprakashgobi@oksbi';
-const UPI_NAME = 'Ramprakashgobi Ramprakash';
-
-const BANK_DETAILS = {
-  accountHolder: 'GIRIRAM CYCLE MART',
-  bankName: 'State Bank of India',
-  accountNumber: '1234567890',
-  ifsc: 'SBIN0001234',
-  branch: 'Central Market Branch',
-};
 
 export default function CheckoutPage() {
   const { cart, cartTotal, clearCart, shippingOption } = useCart();
@@ -26,10 +15,6 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
-  const [paymentScreenshot, setPaymentScreenshot] = useState(null);
-  const [paymentScreenshotPreview, setPaymentScreenshotPreview] = useState(null);
-  const [copied, setCopied] = useState(false);
-  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     fullName: '',
@@ -40,7 +25,7 @@ export default function CheckoutPage() {
     city: '',
     state: 'Tamil Nadu',
     pincode: '',
-    paymentMethod: 'cod',
+    paymentMethod: 'razorpay',
     deliveryNotes: '',
     useCurrentLocation: false,
   });
@@ -50,16 +35,9 @@ export default function CheckoutPage() {
   const shippingCost = shippingOption === 'express' ? 500 : 0;
   const grandTotal = cartTotal + shippingCost;
 
-  const upiPaymentString = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${grandTotal}&cu=INR`;
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
-    // Reset screenshot when payment method changes
-    if (name === 'paymentMethod') {
-      setPaymentScreenshot(null);
-      setPaymentScreenshotPreview(null);
-    }
   };
 
   const handleGetLocation = () => {
@@ -84,28 +62,42 @@ export default function CheckoutPage() {
     );
   };
 
-  const handleScreenshotUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file (JPG, PNG, etc.)');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be under 5MB');
-        return;
-      }
-      setPaymentScreenshot(file);
-      setPaymentScreenshotPreview(URL.createObjectURL(file));
-      toast.success('Payment screenshot uploaded!');
-    }
-  };
+  const processCheckout = async (paymentMethod, paymentDetails = {}) => {
+    const shippingAddress = {
+      address: form.address,
+      landmark: form.landmark,
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode,
+      deliveryNotes: form.deliveryNotes,
+    };
 
-  const handleCopyUpi = () => {
-    navigator.clipboard.writeText(UPI_ID);
-    setCopied(true);
-    toast.success('UPI ID copied!');
-    setTimeout(() => setCopied(false), 2000);
+    const cartItems = cart.map(item => ({
+      productId: item.id || null,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    }));
+
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName: form.fullName,
+        customerEmail: form.email,
+        customerPhone: form.phone,
+        shippingAddress,
+        paymentMethod,
+        cartItems,
+        totalAmount: grandTotal,
+        shippingCost,
+        ...paymentDetails
+      }),
+    });
+
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
   };
 
   const handleSubmit = async (e) => {
@@ -114,54 +106,78 @@ export default function CheckoutPage() {
       toast.error('Your cart is empty!');
       return;
     }
-    if ((form.paymentMethod === 'upi' || form.paymentMethod === 'bank') && !paymentScreenshot) {
-      toast.error('Please upload your payment screenshot as proof before placing the order.');
-      return;
-    }
+
     setIsSubmitting(true);
-    const toastId = toast.loading('Placing your order...');
+    const toastId = toast.loading('Initiating Payment...');
+
     try {
-      const shippingAddress = {
-        address: form.address,
-        landmark: form.landmark,
-        city: form.city,
-        state: form.state,
-        pincode: form.pincode,
-        deliveryNotes: form.deliveryNotes,
-      };
+      if (form.paymentMethod === 'razorpay') {
+        if (!window.Razorpay) {
+          throw new Error('Razorpay SDK failed to load. Please check your internet connection.');
+        }
 
-      const cartItems = cart.map(item => ({
-        productId: item.id || null,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      }));
+        // 1. Create order on server
+        const orderRes = await fetch('/api/razorpay/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: grandTotal }),
+        });
+        const orderData = await orderRes.json();
+        
+        if (orderData.error) throw new Error(orderData.error);
 
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: form.fullName,
-          customerEmail: form.email,
-          customerPhone: form.phone,
-          shippingAddress,
-          paymentMethod: form.paymentMethod,
-          cartItems,
-          totalAmount: grandTotal,
-          shippingCost,
-        }),
-      });
+        toast.dismiss(toastId);
 
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
+        // 2. Open Razorpay Interface
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use Razorpay testing key 
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: 'GIRIRAM CYCLE MART',
+          description: 'Secure Checkout Purchase',
+          order_id: orderData.id,
+          handler: async function (response) {
+            const processingToast = toast.loading('Verifying Payment...');
+            try {
+              const res = await processCheckout('razorpay', {
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id
+              });
+              toast.success('Payment Successful & Order Placed!', { id: processingToast });
+              setOrderId(res.orderRef || res.orderId);
+              setOrderPlaced(true);
+              clearCart();
+            } catch (err) {
+              toast.error('Payment verified but order failed. Contact support.', { id: processingToast });
+            }
+          },
+          prefill: {
+            name: form.fullName,
+            email: form.email,
+            contact: form.phone
+          },
+          theme: {
+            color: '#1E40AF'
+          }
+        };
 
-      toast.success('Order placed successfully!', { id: toastId });
-      setOrderId(json.orderRef || json.orderId);
-      setOrderPlaced(true);
-      clearCart();
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          toast.error(`Payment failed: ${response.error.description}`);
+          setIsSubmitting(false); // Enable button again
+        });
+        rzp.open();
+        
+      } else {
+        // COD Route
+        const res = await processCheckout('cod');
+        toast.success('Order placed successfully!', { id: toastId });
+        setOrderId(res.orderRef || res.orderId);
+        setOrderPlaced(true);
+        clearCart();
+      }
     } catch (err) {
-      toast.error('Failed to place order: ' + err.message, { id: toastId });
-    } finally {
+      toast.error('Failed to process order: ' + err.message, { id: toastId });
       setIsSubmitting(false);
     }
   };
@@ -176,18 +192,16 @@ export default function CheckoutPage() {
           <h1 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem' }}>Order Placed!</h1>
           <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Thank you for shopping with <strong>GIRIRAM CYCLE MART</strong></p>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-            Your Order ID: <span style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.125rem' }}>{orderId}</span>
+            Your Tracking ID: <span style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.125rem' }}>{orderId}</span>
           </p>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '2rem' }}>
             {form.paymentMethod === 'cod'
-              ? 'Pay when your order arrives at your doorstep.'
-              : form.paymentMethod === 'upi'
-              ? 'Your UPI payment screenshot has been submitted. We will verify and confirm shortly.'
-              : 'Your bank transfer screenshot has been submitted. We will verify and confirm shortly.'}
+              ? 'Pay securely with cash when your order arrives at your doorstep.'
+              : 'Your online payment was successful and your order is instantly confirmed!'}
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
             <Link href="/products"><Button>Continue Shopping</Button></Link>
-            <Link href="/"><button className="btn btn-outline">Go Home</button></Link>
+            <Link href="/track"><button className="btn btn-outline" style={{ display: 'flex', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: '600' }}>Track Order</button></Link>
           </div>
         </div>
       </div>
@@ -196,10 +210,12 @@ export default function CheckoutPage() {
 
   return (
     <div style={{ backgroundColor: 'var(--bg-color)', minHeight: '100vh', padding: '3rem 0' }}>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+
       <div className="container">
         <div className="page-header">
           <h1 className="page-title">Checkout</h1>
-          <p className="page-subtitle">Complete your order details below</p>
+          <p className="page-subtitle">Complete your order delivery details below</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -274,7 +290,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">PIN Code *</label>
-                    <input name="pincode" type="text" className="form-input" placeholder="560001" value={form.pincode} onChange={handleChange} required maxLength={6} pattern="[0-9]{6}" />
+                    <input name="pincode" type="text" className="form-input" placeholder="638452" value={form.pincode} onChange={handleChange} required maxLength={6} pattern="[0-9]{6}" />
                   </div>
                 </div>
               </div>
@@ -291,11 +307,23 @@ export default function CheckoutPage() {
               </div>
 
               {/* Payment Method */}
-              <div className="checkout-box">
+              <div className="checkout-box" style={{ paddingBottom: '2.5rem' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <CreditCard size={20} style={{ color: 'var(--primary)' }} /> Payment Method
+                  <CreditCard size={20} style={{ color: 'var(--primary)' }} /> Secure Payment
                 </h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                  {/* Razorpay Online */}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.75rem', border: form.paymentMethod === 'razorpay' ? '2px solid var(--primary)' : '1px solid var(--border-color)', backgroundColor: form.paymentMethod === 'razorpay' ? '#EFF6FF' : 'var(--white)', cursor: 'pointer', transition: 'all 0.2s' }}>
+                    <input type="radio" name="paymentMethod" value="razorpay" checked={form.paymentMethod === 'razorpay'} onChange={handleChange} style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} />
+                    <div style={{ width: '44px', height: '44px', borderRadius: '0.75rem', backgroundColor: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CreditCard size={24} style={{ color: '#1E40AF' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: '700', color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Pay Online Instantly</p>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Credit/Debit Cards, UPI, NetBanking, Wallets</p>
+                    </div>
+                  </label>
 
                   {/* Cash on Delivery */}
                   <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.75rem', border: form.paymentMethod === 'cod' ? '2px solid var(--primary)' : '1px solid var(--border-color)', backgroundColor: form.paymentMethod === 'cod' ? '#FFF7ED' : 'var(--white)', cursor: 'pointer', transition: 'all 0.2s' }}>
@@ -308,142 +336,6 @@ export default function CheckoutPage() {
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Pay when your order arrives at your doorstep</p>
                     </div>
                   </label>
-
-                  {/* UPI / GPay - with QR Code */}
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.75rem', border: form.paymentMethod === 'upi' ? '2px solid var(--primary)' : '1px solid var(--border-color)', backgroundColor: form.paymentMethod === 'upi' ? '#FFF7ED' : 'var(--white)', cursor: 'pointer', transition: 'all 0.2s' }}>
-                      <input type="radio" name="paymentMethod" value="upi" checked={form.paymentMethod === 'upi'} onChange={handleChange} style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} />
-                      <div style={{ width: '44px', height: '44px', borderRadius: '0.75rem', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Smartphone size={24} style={{ color: '#1E40AF' }} />
-                      </div>
-                      <div>
-                        <p style={{ fontWeight: '700', color: 'var(--secondary)' }}>UPI / Google Pay / PhonePe</p>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Scan QR code and pay instantly</p>
-                      </div>
-                    </label>
-
-                    {/* UPI Expanded - QR Code */}
-                    {form.paymentMethod === 'upi' && (
-                      <div className="payment-expanded">
-                        <div className="payment-qr-section">
-                          <p style={{ fontWeight: '700', color: 'var(--secondary)', fontSize: '1rem' }}>Scan to Pay ₹{grandTotal.toLocaleString('en-IN')}</p>
-                          <div style={{ borderRadius: '1rem', overflow: 'hidden', border: '3px solid #e5e7eb', display: 'inline-block' }}>
-                            <img src="/payment-qr.jpg" alt="GPay QR Code" style={{ display: 'block', width: '200px', height: '200px', objectFit: 'contain' }} />
-                          </div>
-                          <p className="payment-qr-label">Open GPay / PhonePe / Paytm and scan this QR code</p>
-                          <div className="payment-qr-upi-id">
-                            <Smartphone size={16} />
-                            <span>{UPI_ID}</span>
-                            <button type="button" onClick={handleCopyUpi} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1E40AF', display: 'flex', alignItems: 'center' }}>
-                              {copied ? <CheckCheck size={16} /> : <Copy size={16} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Screenshot Upload */}
-                        <div
-                          className={`screenshot-upload-area ${paymentScreenshot ? 'has-file' : ''}`}
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                            onChange={handleScreenshotUpload}
-                          />
-                          <div className="screenshot-upload-icon">
-                            {paymentScreenshot ? <CheckCircle size={24} /> : <Upload size={24} />}
-                          </div>
-                          <p className="screenshot-upload-text">
-                            {paymentScreenshot
-                              ? <><strong>✓ Screenshot uploaded:</strong> {paymentScreenshot.name}</>
-                              : <><strong>Upload payment screenshot</strong> as proof of payment</>
-                            }
-                          </p>
-                          {paymentScreenshotPreview && (
-                            <div className="screenshot-preview">
-                              <img src={paymentScreenshotPreview} alt="Payment proof" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bank Transfer */}
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderRadius: '0.75rem', border: form.paymentMethod === 'bank' ? '2px solid var(--primary)' : '1px solid var(--border-color)', backgroundColor: form.paymentMethod === 'bank' ? '#FFF7ED' : 'var(--white)', cursor: 'pointer', transition: 'all 0.2s' }}>
-                      <input type="radio" name="paymentMethod" value="bank" checked={form.paymentMethod === 'bank'} onChange={handleChange} style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} />
-                      <div style={{ width: '44px', height: '44px', borderRadius: '0.75rem', backgroundColor: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Landmark size={24} style={{ color: '#15803D' }} />
-                      </div>
-                      <div>
-                        <p style={{ fontWeight: '700', color: 'var(--secondary)' }}>Bank Transfer (NEFT / IMPS)</p>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Transfer to our bank account & upload screenshot</p>
-                      </div>
-                    </label>
-
-                    {/* Bank Transfer Expanded */}
-                    {form.paymentMethod === 'bank' && (
-                      <div className="payment-expanded">
-                        <div className="bank-details-card">
-                          <h4><Landmark size={18} style={{ color: 'var(--primary)' }} /> Bank Account Details</h4>
-                          <div className="bank-detail-row">
-                            <span className="bank-detail-label">Account Holder</span>
-                            <span className="bank-detail-value">{BANK_DETAILS.accountHolder}</span>
-                          </div>
-                          <div className="bank-detail-row">
-                            <span className="bank-detail-label">Bank Name</span>
-                            <span className="bank-detail-value">{BANK_DETAILS.bankName}</span>
-                          </div>
-                          <div className="bank-detail-row">
-                            <span className="bank-detail-label">Account Number</span>
-                            <span className="bank-detail-value">{BANK_DETAILS.accountNumber}</span>
-                          </div>
-                          <div className="bank-detail-row">
-                            <span className="bank-detail-label">IFSC Code</span>
-                            <span className="bank-detail-value">{BANK_DETAILS.ifsc}</span>
-                          </div>
-                          <div className="bank-detail-row">
-                            <span className="bank-detail-label">Branch</span>
-                            <span className="bank-detail-value">{BANK_DETAILS.branch}</span>
-                          </div>
-                          <div style={{ marginTop: '1rem', padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: '#FFF7ED', fontSize: '0.8125rem', color: '#B45309', fontWeight: '500', textAlign: 'center' }}>
-                            Transfer exactly <strong>₹{grandTotal.toLocaleString('en-IN')}</strong> to the above account
-                          </div>
-                        </div>
-
-                        {/* Screenshot Upload */}
-                        <div
-                          className={`screenshot-upload-area ${paymentScreenshot ? 'has-file' : ''}`}
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                            onChange={handleScreenshotUpload}
-                          />
-                          <div className="screenshot-upload-icon">
-                            {paymentScreenshot ? <CheckCircle size={24} /> : <Upload size={24} />}
-                          </div>
-                          <p className="screenshot-upload-text">
-                            {paymentScreenshot
-                              ? <><strong>✓ Screenshot uploaded:</strong> {paymentScreenshot.name}</>
-                              : <><strong>Upload payment screenshot</strong> as proof of bank transfer</>
-                            }
-                          </p>
-                          {paymentScreenshotPreview && (
-                            <div className="screenshot-preview">
-                              <img src={paymentScreenshotPreview} alt="Payment proof" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
                 </div>
               </div>
@@ -476,18 +368,12 @@ export default function CheckoutPage() {
                   <div className="summary-row"><span>Shipping ({shippingOption === 'express' ? 'Express' : 'Standard'})</span><span style={{ color: shippingCost === 0 ? 'var(--success)' : undefined }}>{shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}</span></div>
                   <div className="summary-total"><span>Grand Total</span><span style={{ color: 'var(--primary)' }}>₹{grandTotal.toLocaleString('en-IN')}</span></div>
 
-                  {(form.paymentMethod === 'upi' || form.paymentMethod === 'bank') && !paymentScreenshot && (
-                    <div style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: '#FEF2F2', color: '#B91C1C', fontSize: '0.8125rem', fontWeight: '500', marginBottom: '1rem', textAlign: 'center' }}>
-                      ⚠ Upload payment screenshot to place order
-                    </div>
-                  )}
-
                   <Button type="submit" className="btn-full" disabled={isSubmitting || cart.length === 0} style={{ padding: '1rem', fontSize: '1.125rem', fontWeight: '700' }}>
-                    {isSubmitting ? 'Placing Order...' : `Place Order • ₹${grandTotal.toLocaleString('en-IN')}`}
+                    {isSubmitting ? 'Processing...' : (form.paymentMethod === 'razorpay' ? `Pay Securely • ₹${grandTotal.toLocaleString('en-IN')}` : `Place COD Order • ₹${grandTotal.toLocaleString('en-IN')}`)}
                   </Button>
 
                   <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    By placing this order, you agree to our Terms & Conditions
+                    Your payment details are fully encrypted and secure.
                   </p>
                 </>
               )}

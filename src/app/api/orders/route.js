@@ -15,6 +15,8 @@ export async function POST(req) {
       cartItems,
       totalAmount,
       shippingCost,
+      razorpayPaymentId,
+      razorpayOrderId
     } = body;
 
     const orderRef = 'ORD-' + Math.floor(10000 + Math.random() * 90000);
@@ -29,7 +31,7 @@ export async function POST(req) {
         shipping_address: shippingAddress,
         payment_method: paymentMethod,
         total_amount: totalAmount,
-        status: 'pending',
+        status: razorpayPaymentId ? 'processing' : 'pending', // Auto-approve paid Razorpay orders
         order_ref: orderRef,
       })
       .select()
